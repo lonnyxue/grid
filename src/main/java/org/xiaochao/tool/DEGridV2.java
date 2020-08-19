@@ -11,38 +11,38 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import static org.xiaochao.model.GridModel.createOneGrid;
-
-/**
- * 网格交易1.0版本 最简单的策略 不留利润 不逐层加码
- *
- * @Author jiang_ruixin
- * @Date 2019/6/25 21:00
- **/
-public class Grid {
+public class DEGridV2 {
     private static final String GENERATE_FILE_DIR;
     private static final String FILE_NAME;
     private static final double PER_GRID;
     private static final double MAX_LOSS;
-
+    private static final int BUY_SELL_NUM;
     private static final double CURRENT_PRICE;
-    private static final double MAX_GRID_PRICE;
+    private static final double MAX_PRICE;
+
+    private static final double BUY_AMOUNT;
+
+    private static  final  int  retention_digit;
 
     static {
-        Setting setting = SettingUtil.get("grid.properties");
+        Setting setting = SettingUtil.get("grid_init.properties");
         GENERATE_FILE_DIR = setting.getStr("generate_file_dir");
         FILE_NAME = setting.getStr("file_name");
         PER_GRID = setting.getDouble("per_grid");
         MAX_LOSS = setting.getDouble("max_loss");
         CURRENT_PRICE = setting.getDouble("current_price");
-        MAX_GRID_PRICE = setting.getDouble("max_grid_price");
+        MAX_PRICE = setting.getDouble("max_price");
+        BUY_SELL_NUM = setting.getInt("buy_sell_num");
+        BUY_AMOUNT = setting.getDouble("buy_amount");
+        retention_digit = setting.getInt("retention_digit");
     }
 
     public static void main(String[] args) {
-        Grid grid = new Grid();
+        DEGridV2 grid = new DEGridV2();
         grid.grid();
 
     }
+
 
     public void grid() {
         List<GridModel> gridModels = gen();
@@ -51,19 +51,14 @@ public class Grid {
 
 
     private List<GridModel> gen() {
-        List<GridModel> gridModels = genPricesGtCurrentPrice();
-        gridModels.addAll(genPricesLteCurrentPrice());
+        List<GridModel> gridModels = genPricesLte();
+//        gridModels.addAll(genPricesLte());
         gridModels.add(genSum(gridModels));
         return gridModels;
 
     }
 
-    /**
-     * 生成大于当前价格的网格
-     *
-     * @return
-     */
-    private List<GridModel> genPricesGtCurrentPrice() {
+    private List<GridModel> genPricesGt() {
         List<GridModel> gridModels = new ArrayList<>();
         double nextBuyPrice;
         int level = 1;
@@ -74,20 +69,15 @@ public class Grid {
             double nextSellPrice = CURRENT_PRICE * gridSellLevel;
             level++;
             gridModels.add(createOneGrid(nextBuyPrice, nextSellPrice, gridBuyLevel));
-        } while (nextBuyPrice < MAX_GRID_PRICE);
+        } while (nextBuyPrice < MAX_PRICE);
         gridModels.sort(Comparator.comparingDouble(GridModel::getLevel).reversed());
         return gridModels;
     }
 
-    /**
-     * 生成小于等于当前价格的网格
-     *
-     * @return
-     */
-    private List<GridModel> genPricesLteCurrentPrice() {
+    private List<GridModel> genPricesLte() {
         List<GridModel> gridModels = new ArrayList<>();
         int grids = (int) (MAX_LOSS / PER_GRID);
-        for (int i = 0; i < grids; i++) {
+        for (int i = 0; i <= grids; i++) {
             double gridBuyLevel = 1.0 - PER_GRID * i / 100;
             double gridSellLevel = 1.0 - PER_GRID * (i - 1) / 100;
             double buyPrice = CURRENT_PRICE * gridBuyLevel;
@@ -97,12 +87,6 @@ public class Grid {
         return gridModels;
     }
 
-    /**
-     * 生成合计栏
-     *
-     * @param gridModels
-     * @return
-     */
     private GridModel genSum(List<GridModel> gridModels) {
         GridModel gridModel = new GridModel();
         gridModel.setBuyNum(gridModels.stream().mapToInt(GridModel::getBuyNum).sum());
@@ -114,9 +98,30 @@ public class Grid {
         return gridModel;
     }
 
+    private GridModel createOneGrid(double buyPrice, double sellPrice, double buyLevel) {
+        GridModel gridModel = new GridModel();
+        gridModel.setLevel(buyLevel);
+        gridModel.setBuyPrice(buyPrice);
+        int buyNum = (int) Math.round(BUY_AMOUNT / buyPrice);
+        gridModel.setBuyNum(buyNum);
+        gridModel.setBuyPriceSum(buyPrice * gridModel.getBuyNum());
+
+        gridModel.setSellPrice(sellPrice);
+        //原卖出数量
+        int oldSellNum=(int) Math.round(BUY_AMOUNT / sellPrice);
+        //留存量=（原卖出数量-原卖出数量）* 留存收益份数
+        int LeftNum= (buyNum - oldSellNum)*retention_digit;
+        gridModel.setLeftNum(LeftNum);
+        //本次卖出数量=原卖出数量-留存量
+        gridModel.setSellNum(oldSellNum - ((buyNum - oldSellNum) * (retention_digit - 1)));
+        gridModel.setSellPriceSum((gridModel.getSellPrice() * gridModel.getSellNum()));
+        gridModel.setProfit(gridModel.getLeftNum() * sellPrice);
+        gridModel.setProfitPercentage(gridModel.getProfit() / gridModel.getBuyPriceSum() * 100);
+        return gridModel;
+    }
 
     private void write2Excel(List<GridModel> gridModels) {
-        ExcelWriter writer = ExcelUtil.getWriter(GENERATE_FILE_DIR + File.separator + FILE_NAME + ".xlsx");
+        ExcelWriter writer = ExcelUtil.getWriter(GENERATE_FILE_DIR + File.separator + FILE_NAME + System.currentTimeMillis() + "1.0" + ".xlsx");
         writer.addHeaderAlias("level", "与基准比较");
         writer.addHeaderAlias("buyPrice", "买入价格");
         writer.addHeaderAlias("buyNum", "买入数量");
@@ -124,8 +129,7 @@ public class Grid {
         writer.addHeaderAlias("sellPrice", "卖出价格");
         writer.addHeaderAlias("sellNum", "卖出数量");
         writer.addHeaderAlias("sellPriceSum", "卖出价格合计");
-        writer.addHeaderAlias("leftNum", "留存数量");
-        writer.addHeaderAlias("leftProfitSellPrice", "留存售出价格");
+        writer.addHeaderAlias("leftNum", "留存量");
         writer.addHeaderAlias("profit", "盈利");
         writer.addHeaderAlias("profitPercentage", "盈利百分比");
         writer.write(gridModels);
@@ -139,9 +143,7 @@ public class Grid {
         writer.setColumnWidth(7, 20);
         writer.setColumnWidth(8, 20);
         writer.setColumnWidth(9, 20);
-        writer.setColumnWidth(10, 20);
         writer.flush();
         writer.close();
     }
-
 }
