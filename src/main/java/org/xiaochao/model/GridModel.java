@@ -13,7 +13,7 @@ public class GridModel {
     private static final double MAX_PROFIT_RUN_PERCENT;
 
     static {
-        Setting setting = SettingUtil.get("grid.properties");
+        Setting setting = SettingUtil.get("grid_init.properties");
         BUY_NUM = setting.getInt("buy_num");
         MAX_PROFIT_RUN_PRICE = setting.getDouble("max_profit_run_price");
         MAX_PROFIT_RUN_PERCENT = setting.getDouble("max_profit_run_percent");

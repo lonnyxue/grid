@@ -24,7 +24,7 @@ public class GridV1 {
     private static final double MAX_PRICE;
 
     static {
-        Setting setting = SettingUtil.get("gridV1.properties");
+        Setting setting = SettingUtil.get("grid_init.properties");
         GENERATE_FILE_DIR = setting.getStr("generate_file_dir");
         FILE_NAME = setting.getStr("file_name");
         PER_GRID = setting.getDouble("per_grid");

@@ -121,7 +121,9 @@ public class DEGridV2 {
     }
 
     private void write2Excel(List<GridModel> gridModels) {
-        ExcelWriter writer = ExcelUtil.getWriter(GENERATE_FILE_DIR + File.separator + FILE_NAME + System.currentTimeMillis() + "1.0" + ".xlsx");
+        String path=GENERATE_FILE_DIR + File.separator + FILE_NAME + System.currentTimeMillis() + "1.0" + ".xlsx";
+        System.out.println(path);
+        ExcelWriter writer = ExcelUtil.getWriter(path);
         writer.addHeaderAlias("level", "与基准比较");
         writer.addHeaderAlias("buyPrice", "买入价格");
         writer.addHeaderAlias("buyNum", "买入数量");
