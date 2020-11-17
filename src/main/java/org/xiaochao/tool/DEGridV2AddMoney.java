@@ -7,6 +7,8 @@ import cn.hutool.setting.SettingUtil;
 import org.xiaochao.model.GridModel;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -120,7 +122,10 @@ public class DEGridV2AddMoney {
     }
 
     private void write2Excel(List<GridModel> gridModels) {
-        ExcelWriter writer = ExcelUtil.getWriter(GENERATE_FILE_DIR + File.separator + FILE_NAME + System.currentTimeMillis() + "1.0" + ".xlsx");
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+
+        ExcelWriter writer = ExcelUtil.getWriter(GENERATE_FILE_DIR + File.separator + FILE_NAME
+                +"_"+ time + ".xlsx");
         writer.addHeaderAlias("level", "与基准比较");
         writer.addHeaderAlias("buyPrice", "买入价格");
         writer.addHeaderAlias("buyNum", "买入数量");

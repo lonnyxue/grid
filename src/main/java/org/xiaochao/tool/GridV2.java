@@ -7,6 +7,8 @@ import cn.hutool.setting.SettingUtil;
 import org.xiaochao.model.GridModel;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -41,7 +43,7 @@ public class GridV2 {
     private static final double MAX_GRID_PRICE;
 
     static {
-        Setting setting = SettingUtil.get("gridV2_000002.properties");
+        Setting setting = SettingUtil.get("grid_init.properties");
         GENERATE_FILE_DIR = setting.getStr("generate_file_dir");
         FILE_NAME = setting.getStr("file_name");
         PER_GRID = setting.getDouble("per_grid");
@@ -128,7 +130,9 @@ public class GridV2 {
 
 
     private void write2Excel(List<GridModel> gridModels) {
-        ExcelWriter writer = ExcelUtil.getWriter(GENERATE_FILE_DIR + File.separator + FILE_NAME + System.currentTimeMillis()+".xlsx");
+        String time = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        ExcelWriter writer = ExcelUtil.getWriter(GENERATE_FILE_DIR + File.separator +
+                FILE_NAME +"_"+ time+".xlsx");
         writer.addHeaderAlias("level", "与基准比较");
         writer.addHeaderAlias("buyPrice", "买入价格");
         writer.addHeaderAlias("buyNum", "买入数量");
